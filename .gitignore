@@ -1,0 +1,11 @@
+# downloaded data + computed results (rebuilt by run_macro_gate.py)
+cache/
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+# os / editor
+.DS_Store
+.idea/
+.vscode/
