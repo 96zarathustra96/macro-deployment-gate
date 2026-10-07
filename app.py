@@ -2,6 +2,9 @@
 
     cd macro_gate && streamlit run app.py
 """
+import threading
+import time
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -12,6 +15,7 @@ from signals.composite import SIGNALS, ZONE_RULES
 BG = "#0b0e17"
 TEXT = "#e6e9f0"
 MUTED = "#8b93a7"
+MAX_AGE_HOURS = 12
 ZONE_COLORS = {"FULL DEPLOY": "#22c55e", "REDUCED": "#f59e0b", "DEFENSIVE": "#ef4444"}
 
 st.set_page_config(page_title="Macro Deployment Gate", layout="wide")
@@ -37,6 +41,25 @@ with st.sidebar:
         st.cache_data.clear()
     st.caption("Same as running `python run_macro_gate.py`.")
 
+@st.cache_resource
+def refresh_lock():
+    return threading.Lock()
+
+
+# Hosted (e.g. Streamlit Cloud) the cache/ folder starts empty and is wiped on restart, so compute on
+# first load and whenever results are older than MAX_AGE_HOURS. The lock stops concurrent viewers
+# from all downloading at once.
+age_hours = ((time.time() - pipeline.RESULTS.stat().st_mtime) / 3600) if pipeline.RESULTS.exists() else None
+if age_hours is None or age_hours > MAX_AGE_HOURS:
+    with refresh_lock():
+        if not pipeline.RESULTS.exists() or (time.time() - pipeline.RESULTS.stat().st_mtime) / 3600 > MAX_AGE_HOURS:
+            try:
+                with st.spinner("Downloading market data and computing scores (about 1 minute)..."):
+                    pipeline.run(refresh=True)
+                st.cache_data.clear()
+            except Exception as e:  # keep serving stale results if a refresh fails
+                st.error(f"Data refresh failed: {e}")
+
 stamp = pipeline.RESULTS.stat().st_mtime if pipeline.RESULTS.exists() else None
 res = load(stamp)
 if res is None:
@@ -57,7 +80,7 @@ left, right = st.columns([1, 2])
 with left:
     # inline style: Streamlit's own <p> rules outrank a stylesheet class
     st.markdown(f'<div style="font-size:140px;font-weight:800;line-height:1;color:{zone_color}">'
-                f'{L["score"]:.0f}</div>', unsafe_allow_html=True)
+                f'{L["score"]:.1f}</div>', unsafe_allow_html=True)
     st.markdown(f'<span class="zone-pill" style="background:{zone_color}">{L["zone"]}</span>',
                 unsafe_allow_html=True)
     st.markdown(f"**{ZONE_RULES[L['zone']]}**")
