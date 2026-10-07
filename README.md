@@ -34,7 +34,7 @@ The composite (`signals/composite.py`) is the weighted blend. A score is only re
 Requires Python 3.9+.
 
 ```bash
-git clone https://github.com/<your-username>/macro-deployment-gate.git
+git clone https://github.com/96zarathustra96/macro-deployment-gate.git
 cd macro-deployment-gate
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
@@ -98,3 +98,7 @@ Dark theme (`#0b0e17`) is set in `.streamlit/config.toml`, so run Streamlit from
 ## Disclaimer
 
 For research and education only. This is not investment advice. Past backtest results do not predict future returns.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
